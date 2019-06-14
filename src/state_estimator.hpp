@@ -18,6 +18,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/point_cloud2_iterator.h>
 #include <nav_msgs/Odometry.h>
+#include <std_msgs/Float32MultiArray.h>
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
@@ -35,6 +36,8 @@ class StateEstimator{
   	ros::Subscriber sub_pc;
   	ros::Publisher pub_pc;
   	ros::Publisher pub_odom;
+  	ros::Publisher pub_current_pose;
+  	ros::Publisher pub_target_pose;
   	// params
   	const double height_max = 0.3;
   	const double height_min = -0.3;
@@ -51,6 +54,8 @@ class StateEstimator{
 	ROS_INFO("Node class constructed");
 	sub_pc = pnh.subscribe("/camera/depth/color/points", 1, &StateEstimator::cbpc, this);
 	pub_pc = pnh.advertise<sensor_msgs::PointCloud2> ("pc_out", 1);
+	pub_current_pose = pnh.advertise<std_msgs::Float32MultiArray>("current_pose", 1000);
+	pub_target_pose = pnh.advertise<std_msgs::Float32MultiArray>("target_pose", 1000);
 	pub_odom = pnh.advertise<nav_msgs::Odometry> ("odom", 1);
 
 }
@@ -127,7 +132,8 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 
 
 	vector<cv::Vec4i> lines;
-	cv::HoughLinesP(image, lines, 1, CV_PI/180, 10, 30, 5 );
+	cv::HoughLinesP(image, lines, 1, CV_PI/180, 80, 60, 20 );
+	//void HoughLinesP(InputArray image, OutputArray lines, double rho, double theta, int threshold, double minLineLength=0, double maxLineGap=0 )
 	//cout << lines.size() << endl;
 	
 	float left_wall[2] = {0};
@@ -150,8 +156,9 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 	double max_left_point[2] = {0};
 	int right_corner = 0;
 	int left_corner = 0;
-	double current_pose[2] = {0};
-	double target_pose[2] = {0};
+	vector<float> current_pose(2, 0);
+	vector<float> target_pose(2, 0);
+	int policy_mode = 0;
 	cv::cvtColor(image, image_r, CV_GRAY2BGR);
 	for( int i = 0; i < lines.size(); i++ )
 	{
@@ -171,10 +178,10 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 			slope = (l[1]-l[3])/(l[0]-l[2]);
 		}
 		else{
-			slope = 1;
+			slope = 1000;
 		}
 		double intercept = l[1] - slope* l[0];
-		double dis_to_line = ((slope*100 + intercept)/sqrt(slope*slope+1))/20;
+		double dis_to_line = abs(((slope*100 + intercept)/sqrt(slope*slope+1))/20);
 		//std::cout << ang << " " << dis_to_line << std::endl;
 		//side wall
 		double x_intercept = -intercept/slope;
@@ -284,9 +291,12 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 	
 
 	// Policy
-	// first step: if left and right walls are detected check if parallel yes-> generate pose/ no-> get pose from left wall
-	// second step: make sure if there is free space ahead if no-> send move signal/ yes -> find if there are exits yes -> modify pose no-> spin around
+	// first step: find current pose
+	//if left and right walls are detected check if parallel yes-> generate pose/ no-> get pose from left wall
+	// second step: find target pose
+	//make sure if there is free space ahead if no-> send move signal/ yes -> find if there are exits yes -> modify pose no-> spin around
 
+	//policy mode: stupid. Turn right if possible, else go straight. If encounter dead end, rotate 180 degrees.
 
 	if(left_wall_count > 0 && right_wall_count > 0){
 		//check if parallel and tunnel confirmed
@@ -295,9 +305,9 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 			current_pose[1] = left_wall[1]-right_wall[1];
 			std::cout << "tunnel detected" <<" current pose: " << current_pose[0] << " " << current_pose[1] << std::endl;
 		}
-		else{//get pose from left wall
-			current_pose[0] = -left_wall[0];
-			current_pose[1] = left_wall[1]-1.5;
+		else{//get pose from right wall
+			current_pose[0] = -right_wall[0];
+			current_pose[1] = 1.3-right_wall[1];
 		}
 	}
 	else if(left_wall_count > 0){
@@ -311,8 +321,24 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 		std::cout << "only right wall detected" <<" current pose: " << current_pose[0] << " " << current_pose[1] << std::endl;
 	}
 
-	
+	//publish current pose
+	std_msgs::Float32MultiArray cmsg;
+	cmsg.data = current_pose;
+	pub_current_pose.publish(cmsg);
 
+	if (policy_mode == 0){
+		if(front_wall_count == 0){//if no front wall go straight
+			if(1){//detect if there is a intersection
+				target_pose[0] = 0;
+				target_pose[1] = 0;
+			}
+		std_msgs::Float32MultiArray tmsg;
+		tmsg.data = target_pose;
+		pub_target_pose.publish(tmsg);
+	}
+
+	}
+	
 
 
 
