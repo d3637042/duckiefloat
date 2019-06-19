@@ -104,17 +104,24 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 	pcl::removeNaNFromPointCloud(*cloud, *cloud, indices);
 	
 	
+	//rotate pointcloud
+	float theta = -0.3;
+	Eigen::Affine3f transform = Eigen::Affine3f::Identity();
+	transform.rotate (Eigen::AngleAxisf (theta, Eigen::Vector3f::UnitX()));
+	pcl::transformPointCloud (*cloud, *cloud, transform);
+
 	
 	//Final goal: find the possible shape of the current pointcloud. 
 
 	
 	//filter height limit
+	
 	pcl::PassThrough<pcl::PointXYZ> pass;
 	pass.setInputCloud(cloud);
 	pass.setFilterFieldName("y");
 	pass.setFilterLimits(this->height_min, this->height_max);
 	pass.filter(*cloud);
-
+	
 	//find closest side-wall?
 	//iterate thrcugh all the points and find if there is a wall, follow wall
 	cv::Mat image = cv::Mat::zeros(200, 200, CV_8U);
@@ -174,8 +181,10 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 		}
 		double ang = atan2((l[1]-l[3]), (l[0]-l[2]));
 		double slope;
+
 		if (abs(l[0]-l[2]) > 0.001){
-			slope = (l[1]-l[3])/(l[0]-l[2]);
+			slope = double((l[1]-l[3]))/double((l[0]-l[2]));
+			//std::cout << "debug " << l[1]-l[3] << " " << l[0]-l[2] << " " << slope <<std::endl;
 		}
 		else{
 			slope = 1000;
@@ -185,12 +194,15 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 		//std::cout << ang << " " << dis_to_line << std::endl;
 		//side wall
 		double x_intercept = -intercept/slope;
-		
-		if(abs(ang) < 0.6 && abs(dis_to_line) < 0.5){
+		//std::cout << x_intercept << " " << intercept << " " << slope << std::endl;
+		//std::cout << l[0] << " " << l[1] << " " << l[2] << " " << l[3] << std::endl;
+		if(abs(ang) < 0.3 || abs(ang-3.14) < 0.3){
 			cv::arrowedLine( image_r, cv::Point(l[2], l[3]), cv::Point(l[0], l[1]), cv::Scalar(0, 0, 255), 1, CV_AA);
 			acc_front_ang += ang-1.57;
 			acc_front_dis += dis_to_line;
 			front_wall_count += 1;
+			std::cout << "front wall detected dist:" << intercept/20 << std::endl;
+
 			//cout << ((l[2]-max_right_point[0])*(l[2]-max_right_point[0])+(l[3]-max_right_point[1])*(l[3]-max_right_point[1])) << endl;
 			//cout << ((l[0]-max_right_point[0])*(l[0]-max_right_point[0])+(l[1]-max_right_point[1])*(l[1]-max_right_point[1])) << endl;
 			if (((l[2]-max_right_point[0])*(l[2]-max_right_point[0])+(l[3]-max_right_point[1])*(l[3]-max_right_point[1])) < 3000){
@@ -205,10 +217,11 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 			if (((l[0]-max_left_point[0])*(l[0]-max_left_point[0])+(l[1]-max_left_point[1])*(l[1]-max_left_point[1])) < 3000){
 				left_corner = 1;
 			}
+
 		}
 
 		else {
-			if(l[3] > 60)
+			if(l[3] > 100)
 				continue;
 			//std::cout << "l1 l3 " << l[1] << " " << l[3] << std::endl;
 			if (x_intercept > 100){ //right wall
@@ -332,6 +345,12 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 				target_pose[0] = 0;
 				target_pose[1] = 0;
 			}
+		else{
+			if((intercept/20)<2.5){// turn right
+				target_pose[0] = -1.57;
+				target_pose[1] = 0;
+			}
+		}
 		std_msgs::Float32MultiArray tmsg;
 		tmsg.data = target_pose;
 		pub_target_pose.publish(tmsg);
