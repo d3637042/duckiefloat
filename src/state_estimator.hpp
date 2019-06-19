@@ -347,7 +347,7 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 				target_pose[1] = 0;
 			}
 		else{
-			if(front_wall_dist < 2.5)// turn right
+			if(front_wall_dist < 2.5){// turn right
 				target_pose[0] = -1.57;
 				target_pose[1] = 0;
 			}
