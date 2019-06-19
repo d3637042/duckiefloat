@@ -148,7 +148,8 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 	float front_wall[2] = {0};
 	int right_wall_count = 0;
 	int left_wall_count = 0;
-	int front_wall_count = 0;	
+	int front_wall_count = 0;
+	int front_wall_dist = 0;
 	double acc_right_ang = 0;
 	double acc_right_slope = 0;
 	double acc_right_intercept = 0;
@@ -202,7 +203,7 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 			acc_front_dis += dis_to_line;
 			front_wall_count += 1;
 			std::cout << "front wall detected dist:" << intercept/20 << std::endl;
-
+			front_wall_dist = (intercept/20);
 			//cout << ((l[2]-max_right_point[0])*(l[2]-max_right_point[0])+(l[3]-max_right_point[1])*(l[3]-max_right_point[1])) << endl;
 			//cout << ((l[0]-max_right_point[0])*(l[0]-max_right_point[0])+(l[1]-max_right_point[1])*(l[1]-max_right_point[1])) << endl;
 			if (((l[2]-max_right_point[0])*(l[2]-max_right_point[0])+(l[3]-max_right_point[1])*(l[3]-max_right_point[1])) < 3000){
@@ -346,7 +347,7 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 				target_pose[1] = 0;
 			}
 		else{
-			if((intercept/20)<2.5){// turn right
+			if(front_wall_dist < 2.5)// turn right
 				target_pose[0] = -1.57;
 				target_pose[1] = 0;
 			}
