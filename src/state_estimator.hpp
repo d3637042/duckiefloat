@@ -321,12 +321,12 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 		}
 		else{//get pose from right wall
 			current_pose[0] = -right_wall[0];
-			current_pose[1] = 1.3-right_wall[1];
+			current_pose[1] = 0.6-right_wall[1];
 		}
 	}
 	else if(left_wall_count > 0){
 		current_pose[0] = -left_wall[0];
-		current_pose[1] = left_wall[1]-1.3;
+		current_pose[1] = left_wall[1]-0.6;
 		std::cout << "only left wall detected" <<" current pose: " << current_pose[0] << " " << current_pose[1] << std::endl;
 	}
 	else if(right_wall_count > 0){
