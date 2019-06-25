@@ -39,8 +39,8 @@ class StateEstimator{
   	ros::Publisher pub_current_pose;
   	ros::Publisher pub_target_pose;
   	// params
-  	const double height_max = 0.3;
-  	const double height_min = -0.3;
+  	const double height_max = 0.1;
+  	const double height_min = -0.1;
 
   public:
   	//constructor
@@ -126,15 +126,29 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 	//iterate thrcugh all the points and find if there is a wall, follow wall
 	cv::Mat image = cv::Mat::zeros(200, 200, CV_8U);
 	cv::Mat image_r = cv::Mat::zeros(200, 200, CV_8UC3);
+	double min_left_ob[3] = {10, 10, 0};
+	double min_right_ob[3] = {10, 10, 0};
 	for(PointCloudXYZ::iterator it=cloud->begin(); it!=cloud->end(); it++){
 		//cout << it->x << " " << it->z << endl;
 		if (abs(it->x) < 5 && abs(it->z) < 5){
 			cv::Point pt = cv::Point(int((it->x)*20)+100, int((it->z)*40));
 			cv::circle( image, pt, 1, cv::Scalar(255), -1, 8 );
-			
+			//std::cout << it->x << " " << it->z << std::endl;
+			if((it->z < min_left_ob[1]) && (it->x < 0) && (it->z > 0.3)){
+				min_left_ob[1] = it->z;
+				min_left_ob[0] = it->x;
+				min_left_ob[2] = -sqrt(it->x*it->x+it->z*it->z);
+			}
+			if((it->z < min_right_ob[1]) && (it->x > 0) && (it->z > 0.3)){
+				min_right_ob[1] = it->z;
+				min_right_ob[0] = it->x;
+				min_right_ob[2] = sqrt(it->x*it->x+it->z*it->z);
+			}
 		}
+
 		
 	}
+	std::cout << min_left_ob[2] << " " << min_right_ob[2] << std::endl;
 	//cv::flip(image, image, 0);
 
 
@@ -255,6 +269,7 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 
 			//cout << ang << " " << dis_to_line << endl;
 		} 
+
 		
 
 
@@ -298,11 +313,11 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 		cout << "right corner detected" << endl; 
 	}
 
-	/*
+	
 	cv::flip(image_r, image_r, 0);
 	cv::imshow("sliced pc", image_r);
 	cv::waitKey(10); 
-	*/
+	
 
 	// Policy
 	// first step: find current pose
@@ -312,26 +327,37 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 
 	//policy mode: stupid. Turn right if possible, else go straight. If encounter dead end, rotate 180 degrees.
 
+	if(min_left_ob[2] < -1 && min_right_ob[2] > 1){
+		current_pose[1] = 0;
+	}
+	else{
+		if(min_left_ob[0] > min_right_ob[2])
+			current_pose[1] = 1-min_right_ob[2];
+		else
+			current_pose[1] = -(1+min_left_ob[2]);
+	}
+
 	if(left_wall_count > 0 && right_wall_count > 0){
 		//check if parallel and tunnel confirmed
 		if(abs(left_wall[0]-right_wall[0]) < 0.25 and right_wall[1]+left_wall[1] > 2){
 			current_pose[0] = -(left_wall[0]+right_wall[0])/2;
-			current_pose[1] = left_wall[1]-right_wall[1];
+			
+			//current_pose[1] = left_wall[1]-right_wall[1];
 			std::cout << "tunnel detected" <<" current pose: " << current_pose[0] << " " << current_pose[1] << std::endl;
 		}
 		else{//get pose from right wall
 			current_pose[0] = -right_wall[0];
-			current_pose[1] = 0.6-right_wall[1];
+			
 		}
 	}
 	else if(left_wall_count > 0){
 		current_pose[0] = -left_wall[0];
-		current_pose[1] = left_wall[1]-0.6;
+		
 		std::cout << "only left wall detected" <<" current pose: " << current_pose[0] << " " << current_pose[1] << std::endl;
 	}
 	else if(right_wall_count > 0){
 		current_pose[0] = -right_wall[0];
-		current_pose[1] = 0.6-right_wall[1];
+		
 		std::cout << "only right wall detected" <<" current pose: " << current_pose[0] << " " << current_pose[1] << std::endl;
 	}
 
