@@ -105,7 +105,7 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 	
 	
 	//rotate pointcloud
-	float theta = -0.3;
+	float theta = 0;
 	Eigen::Affine3f transform = Eigen::Affine3f::Identity();
 	transform.rotate (Eigen::AngleAxisf (theta, Eigen::Vector3f::UnitX()));
 	pcl::transformPointCloud (*cloud, *cloud, transform);
@@ -128,8 +128,8 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 	cv::Mat image_r = cv::Mat::zeros(200, 200, CV_8UC3);
 	for(PointCloudXYZ::iterator it=cloud->begin(); it!=cloud->end(); it++){
 		//cout << it->x << " " << it->z << endl;
-		if (abs(it->x) < 5 && abs(it->z) < 10){
-			cv::Point pt = cv::Point(int((it->x)*20)+100, int((it->z)*20));
+		if (abs(it->x) < 5 && abs(it->z) < 5){
+			cv::Point pt = cv::Point(int((it->x)*20)+100, int((it->z)*40));
 			cv::circle( image, pt, 1, cv::Scalar(255), -1, 8 );
 			
 		}
@@ -298,11 +298,11 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 		cout << "right corner detected" << endl; 
 	}
 
-	/*
+	
 	cv::flip(image_r, image_r, 0);
 	cv::imshow("sliced pc", image_r);
 	cv::waitKey(10); 
-	*/
+	
 
 	// Policy
 	// first step: find current pose
@@ -347,8 +347,9 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 				target_pose[1] = 0;
 			}
 		else{
-			if(front_wall_dist < 2.5){// turn right
-				target_pose[0] = -1.57;
+			std::cout << "//////////////turn left//////////////" << std::endl;
+			if(front_wall_dist < 3){// turn left
+				target_pose[0] = 1.57;
 				target_pose[1] = 0;
 			}
 		}
