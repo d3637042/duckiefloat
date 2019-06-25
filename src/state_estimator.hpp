@@ -153,7 +153,7 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 
 
 	vector<cv::Vec4i> lines;
-	cv::HoughLinesP(image, lines, 1, CV_PI/180, 80, 60, 20 );
+	cv::HoughLinesP(image, lines, 1, CV_PI/180, 40, 20, 20 );
 	//void HoughLinesP(InputArray image, OutputArray lines, double rho, double theta, int threshold, double minLineLength=0, double maxLineGap=0 )
 	//cout << lines.size() << endl;
 	
@@ -211,7 +211,7 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 		double x_intercept = -intercept/slope;
 		//std::cout << x_intercept << " " << intercept << " " << slope << std::endl;
 		//std::cout << l[0] << " " << l[1] << " " << l[2] << " " << l[3] << std::endl;
-		if(abs(ang) < 0.3 || abs(ang-3.14) < 0.3){
+		if(abs(ang) < 0.1 || abs(ang-3.14) < 0.1){
 			cv::arrowedLine( image_r, cv::Point(l[2], l[3]), cv::Point(l[0], l[1]), cv::Scalar(0, 0, 255), 1, CV_AA);
 			acc_front_ang += ang-1.57;
 			acc_front_dis += dis_to_line;
@@ -313,11 +313,11 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 		cout << "right corner detected" << endl; 
 	}
 
-	
+	/*
 	cv::flip(image_r, image_r, 0);
 	cv::imshow("sliced pc", image_r);
 	cv::waitKey(10); 
-	
+	*/
 
 	// Policy
 	// first step: find current pose
