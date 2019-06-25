@@ -327,14 +327,14 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 
 	//policy mode: stupid. Turn right if possible, else go straight. If encounter dead end, rotate 180 degrees.
 
-	if(min_left_ob[2] < -1 && min_right_ob[2] > 1){
+	if(min_left_ob[0] < -0.6 && min_right_ob[0] > 0.6){
 		current_pose[1] = 0;
 	}
 	else{
-		if(min_left_ob[0] > min_right_ob[2])
-			current_pose[1] = 1-min_right_ob[2];
+		if(min_left_ob[1] > min_right_ob[1])
+			current_pose[1] = 0.6-min_right_ob[0];
 		else
-			current_pose[1] = -(1+min_left_ob[2]);
+			current_pose[1] = -(0.6+min_left_ob[0]);
 	}
 
 	if(left_wall_count > 0 && right_wall_count > 0){
