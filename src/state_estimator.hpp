@@ -313,11 +313,11 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 		cout << "right corner detected" << endl; 
 	}
 
-	
+	/*
 	cv::flip(image_r, image_r, 0);
 	cv::imshow("sliced pc", image_r);
 	cv::waitKey(10); 
-	
+	*/
 
 	// Policy
 	// first step: find current pose
@@ -342,7 +342,7 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 		else
 			current_pose[1] = -(0.6+min_left_ob[0]);
 	}
-	if(abs(min_left_ob[0]+min_right_ob[0])<0.3){
+	if(abs(current_pose[0])<0.2){
 		current_pose[1] = 0;
 	}
 
