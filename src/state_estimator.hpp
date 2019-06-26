@@ -148,7 +148,7 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 
 		
 	}
-	std::cout << min_left_ob[0] << " " << min_right_ob[0] << std::endl;
+	std::cout << min_left_ob[2] << " " << min_right_ob[2] << std::endl;
 	//cv::flip(image, image, 0);
 
 
@@ -313,11 +313,11 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 		cout << "right corner detected" << endl; 
 	}
 
-	/*
+	
 	cv::flip(image_r, image_r, 0);
 	cv::imshow("sliced pc", image_r);
 	cv::waitKey(10); 
-	*/
+	
 
 	// Policy
 	// first step: find current pose
@@ -341,6 +341,9 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 			current_pose[1] = 0.6-min_right_ob[0];
 		else
 			current_pose[1] = -(0.6+min_left_ob[0]);
+	}
+	if(abs(min_left_ob[0]+min_right_ob[0])<0.3){
+		current_pose[1] = 0;
 	}
 
 	if(left_wall_count > 0 && right_wall_count > 0){
