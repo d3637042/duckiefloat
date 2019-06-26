@@ -153,7 +153,7 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 
 
 	vector<cv::Vec4i> lines;
-	cv::HoughLinesP(image, lines, 1, CV_PI/180, 40, 20, 20 );
+	cv::HoughLinesP(image, lines, 1, CV_PI/180, 20, 10, 20 );
 	//void HoughLinesP(InputArray image, OutputArray lines, double rho, double theta, int threshold, double minLineLength=0, double maxLineGap=0 )
 	//cout << lines.size() << endl;
 	
@@ -313,11 +313,11 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 		cout << "right corner detected" << endl; 
 	}
 
-	
+	/*
 	cv::flip(image_r, image_r, 0);
 	cv::imshow("sliced pc", image_r);
 	cv::waitKey(10); 
-	
+	*/
 
 	// Policy
 	// first step: find current pose
