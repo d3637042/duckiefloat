@@ -105,7 +105,7 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 	
 	
 	//rotate pointcloud
-	float theta = 0;
+	float theta = -0.1;
 	Eigen::Affine3f transform = Eigen::Affine3f::Identity();
 	transform.rotate (Eigen::AngleAxisf (theta, Eigen::Vector3f::UnitX()));
 	pcl::transformPointCloud (*cloud, *cloud, transform);
@@ -148,7 +148,7 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 
 		
 	}
-	std::cout << min_left_ob[2] << " " << min_right_ob[2] << std::endl;
+	std::cout << min_left_ob[0] << " " << min_right_ob[0] << std::endl;
 	//cv::flip(image, image, 0);
 
 
@@ -327,14 +327,14 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 
 	//policy mode: stupid. Turn right if possible, else go straight. If encounter dead end, rotate 180 degrees.
 
-	if(min_left_ob[0] < -0.6 && min_right_ob[0] > 0.6 && min_left_ob[0] > -2 && min_right_ob[0] < 2){
+	if(min_left_ob[0] < -0.6 && min_right_ob[0] > 0.6 && min_left_ob[0] > -0.9 && min_right_ob[0] < 0.9){
 		current_pose[1] = 0;
 	}
-	else if(min_left_ob[0] < -2){
-		current_pose[1] = 0.1
+	else if(min_left_ob[0] < -0.9){
+		current_pose[1] = 0.1;
 	}
-	else if(min_right_ob[0] > 2){
-		current_pose[1] = -0.1
+	else if(min_right_ob[0] > 0.9){
+		current_pose[1] = -0.1;
 	}
 	else{
 		if(min_left_ob[1] > min_right_ob[1])
