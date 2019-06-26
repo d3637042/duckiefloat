@@ -148,7 +148,7 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 
 		
 	}
-	std::cout << min_left_ob[2] << " " << min_right_ob[2] << std::endl;
+	std::cout << min_left_ob[0] << " " << min_right_ob[0] << std::endl;
 	//cv::flip(image, image, 0);
 
 
@@ -313,11 +313,11 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 		cout << "right corner detected" << endl; 
 	}
 
-	/*
+	
 	cv::flip(image_r, image_r, 0);
 	cv::imshow("sliced pc", image_r);
 	cv::waitKey(10); 
-	*/
+	
 
 	// Policy
 	// first step: find current pose
@@ -327,7 +327,7 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 
 	//policy mode: stupid. Turn right if possible, else go straight. If encounter dead end, rotate 180 degrees.
 
-	if(min_left_ob[0] < -0.6 && min_right_ob[0] > 0.6 && min_left_ob[0] > -0.9 && min_right_ob[0] < 0.9){
+	if((min_left_ob[0] < -0.6) && (min_right_ob[0] > 0.6) && (min_left_ob[0] > -0.9) && (min_right_ob[0] < 0.9)){
 		current_pose[1] = 0;
 	}
 	else if(min_left_ob[0] < -0.9){
@@ -341,9 +341,6 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 			current_pose[1] = 0.6-min_right_ob[0];
 		else
 			current_pose[1] = -(0.6+min_left_ob[0]);
-	}
-	if(abs(current_pose[0])<0.2){
-		current_pose[1] = 0;
 	}
 
 	if(left_wall_count > 0 && right_wall_count > 0){
@@ -369,6 +366,10 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 		
 		std::cout << "only right wall detected" <<" current pose: " << current_pose[0] << " " << current_pose[1] << std::endl;
 	}
+	if(abs(current_pose[0])<0.2){
+		current_pose[1] = 0;
+	}
+
 
 	//publish current pose
 	std_msgs::Float32MultiArray cmsg;
