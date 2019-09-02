@@ -52,7 +52,7 @@ class StateEstimator{
 	pnh = pn;
 	node_name = ros::this_node::getName();
 	ROS_INFO("Node class constructed");
-	sub_pc = pnh.subscribe("/camera/depth/color/points", 1, &StateEstimator::cbpc, this);
+	sub_pc = pnh.subscribe("/camera_middle/depth/color/points", 1, &StateEstimator::cbpc, this);
 	pub_pc = pnh.advertise<sensor_msgs::PointCloud2> ("pc_out", 1);
 	pub_current_pose = pnh.advertise<std_msgs::Float32MultiArray>("current_pose", 1000);
 	pub_target_pose = pnh.advertise<std_msgs::Float32MultiArray>("target_pose", 1000);
@@ -105,7 +105,7 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 	
 	
 	//rotate pointcloud
-	float theta = -0.1;
+	float theta = 0;
 	Eigen::Affine3f transform = Eigen::Affine3f::Identity();
 	transform.rotate (Eigen::AngleAxisf (theta, Eigen::Vector3f::UnitX()));
 	pcl::transformPointCloud (*cloud, *cloud, transform);
@@ -178,6 +178,8 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 	double max_left_point[2] = {0};
 	int right_corner = 0;
 	int left_corner = 0;
+	ros::Time begin;
+	int latch = 0;
 	vector<float> current_pose(2, 0);
 	vector<float> target_pose(2, 0);
 	int policy_mode = 0;
@@ -216,7 +218,7 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 			acc_front_ang += ang-1.57;
 			acc_front_dis += dis_to_line;
 			front_wall_count += 1;
-			std::cout << "front wall detected dist:" << intercept/20 << std::endl;
+			std::cout << "front wall detected dist:" << intercept/20 << " " << front_wall_count<< std::endl;
 			front_wall_dist = (intercept/20);
 			//cout << ((l[2]-max_right_point[0])*(l[2]-max_right_point[0])+(l[3]-max_right_point[1])*(l[3]-max_right_point[1])) << endl;
 			//cout << ((l[0]-max_right_point[0])*(l[0]-max_right_point[0])+(l[1]-max_right_point[1])*(l[1]-max_right_point[1])) << endl;
@@ -304,7 +306,7 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 	if (front_wall_count != 0){
 		front_wall[0] = acc_front_ang/front_wall_count;
 		front_wall[1] = acc_front_dis/front_wall_count;
-		//cout << "front "<< front_wall[0] << " " << front_wall[1] << endl;
+		cout << "front "<< front_wall[0] << " " << front_wall[1] << endl;
 	}
 	if (left_corner == 1){
 		cout << "left corner detected" << endl; 
@@ -379,12 +381,25 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 	if (policy_mode == 0){
 		if(front_wall_count == 0){//if no front wall go straight
 			if(1){//detect if there is a intersection
-				target_pose[0] = 0;
-				target_pose[1] = 0;
+				if (latch==1){
+					ros::Duration dur(5);
+					if (ros::Time::now()-begin > dur)
+						latch = 0;
+				}
+				else{
+					target_pose[0] = 0;
+					target_pose[1] = 0;
+				}
 			}
+		}
 		else{
-			std::cout << "//////////////turn left//////////////" << std::endl;
-			if(front_wall_dist < 3){// turn left
+			if(front_wall_dist < 6 && front_wall_dist > 3){// turn left
+				std::cout << "////turn left////" << std::endl;
+				if (latch==0){
+					begin = ros::Time::now();
+					latch = 1;
+				}
+
 				target_pose[0] = 1.57;
 				target_pose[1] = 0;
 			}
@@ -394,7 +409,6 @@ void StateEstimator::pc_handler(const pcl::PCLPointCloud2::Ptr cloud_in, pcl::PC
 		pub_target_pose.publish(tmsg);
 	}
 
-	}
 	
 
 
